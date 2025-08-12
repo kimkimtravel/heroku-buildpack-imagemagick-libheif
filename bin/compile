@@ -1,0 +1,206 @@
+#!/bin/bash
+
+indent() {
+  sed -u 's/^/       /'
+}
+
+echo "-----> Install ImageMagick"
+
+BUILD_DIR=$1
+CACHE_DIR=$2
+VENDOR_DIR="$BUILD_DIR/vendor"
+
+IMAGE_MAGICK_INSTALL_DIR="$VENDOR_DIR/imagemagick"
+IMAGE_MAGICK_VERSION="${IMAGE_MAGICK_VERSION:-7.1.1-47}"
+IMAGE_MAGICK_CACHE_FILE="$CACHE_DIR/imagemagick-$IMAGE_MAGICK_VERSION.tar.gz"
+
+LIBHEIF_INSTALL_DIR="$VENDOR_DIR/libheif"
+LIBHEIF_VERSION="${LIBHEIF_VERSION:-1.18.2}"
+LIBHEIF_CACHE_FILE="$CACHE_DIR/libheif-$LIBHEIF_VERSION.tar.gz"
+
+# LIBDE265_INSTALL_DIR="$VENDOR_DIR/libde265"
+# LIBDE265_VERSION="${LIBDE265_VERSION:-1.0.16}"
+# LIBDE265_CACHE_FILE="$CACHE_DIR/libde265-$LIBDE265_VERSION.tar.gz"
+
+# # install libde265
+# if [ ! -f $LIBDE265_CACHE_FILE ]; then
+#   echo "-----> Installing dependencies - libde265"
+#   LIBDE265_INSTALL_FAILED=true
+#   echo "-----> Installing cmake for libde265"
+#   apt-get install cmake
+
+#   LIBDE265_FILE="libde265-$LIBDE265_VERSION.tar.gz"
+#   LIBDE265_DIR="libde265-$LIBDE265_VERSION"
+#   LIBDE265_URL="https://github.com/strukturag/libde265/releases/download/v$LIBDE265_VERSION/$LIBDE265_FILE"
+
+#   echo "-----> Downloading libde265 from $LIBDE265_URL"
+#   wget $LIBDE265_URL -P $BUILD_DIR | indent
+
+#   echo "-----> Extracting libde265 from $BUILD_DIR/$LIBDE265_FILE"
+#   if [ ! -f $BUILD_DIR/$LIBDE265_FILE ]; then
+#     echo "Error: Unable to download libde265" | indent
+#     ls $BUILD_DIR | indent
+#     exit 1;
+#   fi
+#   tar xvf $BUILD_DIR/$LIBDE265_FILE | indent
+
+#   echo "-----> Building libde265"
+#   cd $LIBDE265_DIR
+#   cmake --preset=release -DCMAKE_INSTALL_PREFIX=$LIBDE265_INSTALL_DIR
+#   make && make install
+#   cd ..
+#   rm -rf $LIBDE265_DIR
+
+#   # cache for future deploys
+#   echo "-----> Caching libde265 installation"
+#   cd $VENDOR_DIR
+#   REL_LIBDE265_INSTALL_DIR="libde265"
+#   tar czf $REL_LIBDE265_INSTALL_DIR.tar.gz $REL_LIBDE265_INSTALL_DIR
+
+#   if [ ! -d $CACHE_DIR ]; then
+#     mkdir -p $CACHE_DIR
+#   fi
+
+#   mv $REL_LIBDE265_INSTALL_DIR.tar.gz $LIBDE265_CACHE_FILE
+#   FAILED_LIBDE265=false
+# else
+#   # cache exists, extract it
+#   echo "-----> Extracting libde265 $LIBDE265_CACHE_FILE => $VENDOR_DIR"
+#   mkdir -p $VENDOR_DIR
+#   tar xzf $LIBDE265_CACHE_FILE -C $VENDOR_DIR
+# fi
+# echo "-----> Done installing libde265. All set for libde265."
+
+# if [ "$INSTALL_FAILED" = true ]; then
+#   echo "-----> libde265 installation failed. Exiting."
+#   exit 1
+# fi
+
+# install libheif
+if [ ! -f $LIBHEIF_CACHE_FILE ]; then
+  echo "-----> Installing dependencies - LibHEIF1"
+  LIBHEIF_INSTALL_FAILED=true
+
+  LIBHEIF_FILE="libheif-$LIBHEIF_VERSION.tar.gz"
+  LIBHEIF_DIR="libheif-$LIBHEIF_VERSION"
+  LIBHEIF_URL="https://github.com/strukturag/libheif/releases/download/v$LIBHEIF_VERSION/$LIBHEIF_FILE"
+
+  echo "-----> Downloading LibHEIF from $LIBHEIF_URL"
+  wget $LIBHEIF_URL -P $BUILD_DIR | indent
+
+  echo "-----> Extracting LibHEIF from $BUILD_DIR/$LIBHEIF_FILE"
+  if [ ! -f $BUILD_DIR/$LIBHEIF_FILE ]; then
+    echo "Error: Unable to download LibHEIF" | indent
+    ls $BUILD_DIR | indent
+    exit 1;
+  fi
+  tar xvf $BUILD_DIR/$LIBHEIF_FILE | indent
+
+  echo "-----> Building LibHEIF"
+  cd $LIBHEIF_DIR
+  cmake --preset=release -DCMAKE_INSTALL_PREFIX=$LIBHEIF_INSTALL_DIR -DINCLUDE_DIRS=$LIBDE265_INSTALL_DIR/include -DLDFLAGS=$LIBDE265_INSTALL_DIR/lib
+  make && make install
+  cd ..
+  rm -rf $LIBHEIF_DIR
+
+  # cache for future deploys
+  echo "-----> Caching LibHEIF installation"
+  cd $VENDOR_DIR
+  REL_LIBHEIF_INSTALL_DIR="libheif"
+  tar czf $REL_LIBHEIF_INSTALL_DIR.tar.gz $REL_LIBHEIF_INSTALL_DIR
+
+  if [ ! -d $CACHE_DIR ]; then
+    mkdir -p $CACHE_DIR
+  fi
+
+  mv $REL_LIBHEIF_INSTALL_DIR.tar.gz $LIBHEIF_CACHE_FILE
+  FAILED_LIBHEIF=false
+else
+  # cache exists, extract it
+  echo "-----> Extracting LibHEIF $LIBHEIF_CACHE_FILE => $VENDOR_DIR"
+  mkdir -p $VENDOR_DIR
+  tar xzf $LIBHEIF_CACHE_FILE -C $VENDOR_DIR
+fi
+echo "-----> Done installing LibHEIF. All set for LibHEIF."
+
+if [ "$INSTALL_FAILED" = true ]; then
+  echo "-----> LibHEIF installation failed. Exiting."
+  exit 1
+fi
+
+# install imagemagick
+if [ ! -f $IMAGE_MAGICK_CACHE_FILE ]; then
+  IMAGE_MAGICK_FILE="ImageMagick-$IMAGE_MAGICK_VERSION.tar.xz"
+  IMAGE_MAGICK_DIR="ImageMagick-$IMAGE_MAGICK_VERSION"
+  IMAGE_MAGICK_URL="https://www.imagemagick.org/download/releases/$IMAGE_MAGICK_FILE"
+
+  echo "-----> Downloading ImageMagick from $IMAGE_MAGICK_URL"
+  wget $IMAGE_MAGICK_URL -P $BUILD_DIR | indent
+
+  echo "-----> Extracting ImageMagick from $BUILD_DIR/$IMAGE_MAGICK_FILE"
+  if [ ! -f $BUILD_DIR/$IMAGE_MAGICK_FILE ]; then
+    echo "Error: Unable to download ImageMagick" | indent
+    ls $BUILD_DIR | indent
+    exit 1;
+  fi
+  tar xvf $BUILD_DIR/$IMAGE_MAGICK_FILE | indent
+
+  echo "-----> Building ImageMagick"
+  cd $IMAGE_MAGICK_DIR
+  export CPPFLAGS="-I$IMAGE_MAGICK_INSTALL_DIR/include -I$LIBHEIF_INSTALL_DIR/include"
+  export CFLAGS="-I$IMAGE_MAGICK_INSTALL_DIR/include -I$LIBHEIF_INSTALL_DIR/include"
+  export LDFLAGS="-L$IMAGE_MAGICK_INSTALL_DIR/lib -L$LIBHEIF_INSTALL_DIR/lib"
+  export PKG_CONFIG_PATH="$LIBHEIF_INSTALL_DIR/lib/pkgconfig"
+
+  ./configure --prefix=$IMAGE_MAGICK_INSTALL_DIR --with-heic=yes --with-heic=yes --with-jpeg=yes --with-png=yes --with-tiff=yes --with-webp=yes
+  make && make install
+  cd ..
+  rm -rf $IMAGE_MAGICK_DIR
+
+  # cache for future deploys
+  echo "-----> Caching ImageMagick installation"
+  cd $VENDOR_DIR
+  REL_IMAGE_MAGICK_INSTALL_DIR="imagemagick"
+  tar czf $REL_IMAGE_MAGICK_INSTALL_DIR.tar.gz $REL_IMAGE_MAGICK_INSTALL_DIR
+
+  if [ ! -d $CACHE_DIR ]; then
+    mkdir -p $CACHE_DIR
+  fi
+
+  mv $REL_IMAGE_MAGICK_INSTALL_DIR.tar.gz $IMAGE_MAGICK_CACHE_FILE
+
+else
+  # cache exists, extract it
+  echo "-----> Extracting ImageMagick $IMAGE_MAGICK_CACHE_FILE => $VENDOR_DIR"
+  mkdir -p $VENDOR_DIR
+  tar xzf $IMAGE_MAGICK_CACHE_FILE -C $VENDOR_DIR
+fi
+
+echo "-----> Writing ImageMagick policy file"
+mkdir -p $IMAGE_MAGICK_INSTALL_DIR/etc/ImageMagick
+cat > $IMAGE_MAGICK_INSTALL_DIR/policy.xml <<EOF
+<policymap>
+  <policy domain="coder" rights="none" pattern="EPHEMERAL" />
+  <policy domain="coder" rights="none" pattern="HTTPS" />
+  <policy domain="coder" rights="none" pattern="MVG" />
+  <policy domain="coder" rights="none" pattern="MSL" />
+</policymap>
+EOF
+
+echo "-----> Writing ImageMagick config file"
+cat > $IMAGE_MAGICK_INSTALL_DIR/magic.xml <<EOF
+<magicmap>
+ <magic name="JPEG" offset="0" target="\377\330\377"/>
+ <magic name="PNG" offset="0" target="\211PNG\r\n\032\n"/>
+</magicmap>
+EOF
+
+# update PATH and LD_LIBRARY_PATH
+echo "-----> Updating ImageMagick environment variables"
+PROFILE_PATH="$BUILD_DIR/.profile.d/imagemagick.sh"
+ACTUAL_INSTALL_PATH="$HOME/vendor/imagemagick"
+mkdir -p $(dirname $PROFILE_PATH)
+echo "export PATH=$ACTUAL_INSTALL_PATH/bin:\$PATH" >> $PROFILE_PATH
+echo "export LD_LIBRARY_PATH=$ACTUAL_INSTALL_PATH/lib:\$LD_LIBRARY_PATH:/usr/local/lib" >> $PROFILE_PATH
+echo "export MAGICK_CONFIGURE_PATH=$ACTUAL_INSTALL_PATH" >> $PROFILE_PATH
+echo "-----> Done updating environment variables. All set for ImageMagick."

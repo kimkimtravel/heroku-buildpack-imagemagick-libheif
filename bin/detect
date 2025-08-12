@@ -1,0 +1,4 @@
+#!/bin/bash
+
+echo "ImageMagick with LibHEIF"
+exit 0
