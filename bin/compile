@@ -18,64 +18,6 @@ LIBHEIF_INSTALL_DIR="$VENDOR_DIR/libheif"
 LIBHEIF_VERSION="${LIBHEIF_VERSION:-1.18.2}"
 LIBHEIF_CACHE_FILE="$CACHE_DIR/libheif-$LIBHEIF_VERSION.tar.gz"
 
-# LIBDE265_INSTALL_DIR="$VENDOR_DIR/libde265"
-# LIBDE265_VERSION="${LIBDE265_VERSION:-1.0.16}"
-# LIBDE265_CACHE_FILE="$CACHE_DIR/libde265-$LIBDE265_VERSION.tar.gz"
-
-# # install libde265
-# if [ ! -f $LIBDE265_CACHE_FILE ]; then
-#   echo "-----> Installing dependencies - libde265"
-#   LIBDE265_INSTALL_FAILED=true
-#   echo "-----> Installing cmake for libde265"
-#   apt-get install cmake
-
-#   LIBDE265_FILE="libde265-$LIBDE265_VERSION.tar.gz"
-#   LIBDE265_DIR="libde265-$LIBDE265_VERSION"
-#   LIBDE265_URL="https://github.com/strukturag/libde265/releases/download/v$LIBDE265_VERSION/$LIBDE265_FILE"
-
-#   echo "-----> Downloading libde265 from $LIBDE265_URL"
-#   wget $LIBDE265_URL -P $BUILD_DIR | indent
-
-#   echo "-----> Extracting libde265 from $BUILD_DIR/$LIBDE265_FILE"
-#   if [ ! -f $BUILD_DIR/$LIBDE265_FILE ]; then
-#     echo "Error: Unable to download libde265" | indent
-#     ls $BUILD_DIR | indent
-#     exit 1;
-#   fi
-#   tar xvf $BUILD_DIR/$LIBDE265_FILE | indent
-
-#   echo "-----> Building libde265"
-#   cd $LIBDE265_DIR
-#   cmake --preset=release -DCMAKE_INSTALL_PREFIX=$LIBDE265_INSTALL_DIR
-#   make && make install
-#   cd ..
-#   rm -rf $LIBDE265_DIR
-
-#   # cache for future deploys
-#   echo "-----> Caching libde265 installation"
-#   cd $VENDOR_DIR
-#   REL_LIBDE265_INSTALL_DIR="libde265"
-#   tar czf $REL_LIBDE265_INSTALL_DIR.tar.gz $REL_LIBDE265_INSTALL_DIR
-
-#   if [ ! -d $CACHE_DIR ]; then
-#     mkdir -p $CACHE_DIR
-#   fi
-
-#   mv $REL_LIBDE265_INSTALL_DIR.tar.gz $LIBDE265_CACHE_FILE
-#   FAILED_LIBDE265=false
-# else
-#   # cache exists, extract it
-#   echo "-----> Extracting libde265 $LIBDE265_CACHE_FILE => $VENDOR_DIR"
-#   mkdir -p $VENDOR_DIR
-#   tar xzf $LIBDE265_CACHE_FILE -C $VENDOR_DIR
-# fi
-# echo "-----> Done installing libde265. All set for libde265."
-
-# if [ "$INSTALL_FAILED" = true ]; then
-#   echo "-----> libde265 installation failed. Exiting."
-#   exit 1
-# fi
-
 # install libheif
 if [ ! -f $LIBHEIF_CACHE_FILE ]; then
   echo "-----> Installing dependencies - LibHEIF1"
