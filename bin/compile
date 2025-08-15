@@ -1,148 +1,129 @@
 #!/bin/bash
-
-indent() {
-  sed -u 's/^/       /'
-}
-
-echo "-----> Install ImageMagick"
+set -e
 
 BUILD_DIR=$1
 CACHE_DIR=$2
-VENDOR_DIR="$BUILD_DIR/vendor"
 
-IMAGE_MAGICK_INSTALL_DIR="$VENDOR_DIR/imagemagick"
-IMAGE_MAGICK_VERSION="${IMAGE_MAGICK_VERSION:-7.1.1-47}"
-IMAGE_MAGICK_CACHE_FILE="$CACHE_DIR/imagemagick-$IMAGE_MAGICK_VERSION.tar.gz"
+#####################################
+# Versions (bump these to force rebuild)
+#####################################
+LIBHEIF_VERSION="1.19.7"
+IM_VERSION="7.1.1-46"
 
-LIBHEIF_INSTALL_DIR="$VENDOR_DIR/libheif"
-LIBHEIF_VERSION="${LIBHEIF_VERSION:-1.18.2}"
-LIBHEIF_CACHE_FILE="$CACHE_DIR/libheif-$LIBHEIF_VERSION.tar.gz"
+#####################################
+# Cache locations
+#####################################
+LIBHEIF_CACHE="$CACHE_DIR/libheif-$LIBHEIF_VERSION.tar.gz"
+IM_CACHE="$CACHE_DIR/imagemagick-$IM_VERSION.tar.gz"
 
-# install libheif
-if [ ! -f $LIBHEIF_CACHE_FILE ]; then
-  echo "-----> Installing dependencies - LibHEIF1"
-  LIBHEIF_INSTALL_FAILED=true
+#####################################
+# Install dirs
+#####################################
+LIBHEIF_DIR="$BUILD_DIR/.heroku/vendor/libheif"
+IM_DIR="$BUILD_DIR/.heroku/vendor/imagemagick"
 
-  LIBHEIF_FILE="libheif-$LIBHEIF_VERSION.tar.gz"
-  LIBHEIF_DIR="libheif-$LIBHEIF_VERSION"
-  LIBHEIF_URL="https://github.com/strukturag/libheif/releases/download/v$LIBHEIF_VERSION/$LIBHEIF_FILE"
-
-  echo "-----> Downloading LibHEIF from $LIBHEIF_URL"
-  wget $LIBHEIF_URL -P $BUILD_DIR | indent
-
-  echo "-----> Extracting LibHEIF from $BUILD_DIR/$LIBHEIF_FILE"
-  if [ ! -f $BUILD_DIR/$LIBHEIF_FILE ]; then
-    echo "Error: Unable to download LibHEIF" | indent
-    ls $BUILD_DIR | indent
-    exit 1;
+#####################################
+# Function to restore from cache
+#####################################
+restore_cache() {
+  local cache_file=$1
+  local install_dir=$2
+  if [ -f "$cache_file" ]; then
+    echo "📦 Restoring from cache: $cache_file"
+    mkdir -p "$(dirname "$install_dir")"
+    tar -xzf "$cache_file" -C "$(dirname "$install_dir")"
+    return 0
   fi
-  tar xvf $BUILD_DIR/$LIBHEIF_FILE | indent
+  return 1
+}
 
-  echo "-----> Building LibHEIF"
-  cd $LIBHEIF_DIR
-  cmake --preset=release -DCMAKE_INSTALL_PREFIX=$LIBHEIF_INSTALL_DIR -DINCLUDE_DIRS=$LIBDE265_INSTALL_DIR/include -DLDFLAGS=$LIBDE265_INSTALL_DIR/lib
-  make && make install
-  cd ..
-  rm -rf $LIBHEIF_DIR
+#####################################
+# Function to save to cache
+#####################################
+save_cache() {
+  local cache_file=$1
+  local install_dir=$2
+  echo "💾 Saving to cache: $cache_file"
+  tar -czf "$cache_file" -C "$(dirname "$install_dir")" "$(basename "$install_dir")"
+}
 
-  # cache for future deploys
-  echo "-----> Caching LibHEIF installation"
-  cd $VENDOR_DIR
-  REL_LIBHEIF_INSTALL_DIR="libheif"
-  tar czf $REL_LIBHEIF_INSTALL_DIR.tar.gz $REL_LIBHEIF_INSTALL_DIR
+#####################################
+# Build libheif
+#####################################
+if ! restore_cache "$LIBHEIF_CACHE" "$LIBHEIF_DIR"; then
+  echo "⚙️ Building libheif $LIBHEIF_VERSION"
 
-  if [ ! -d $CACHE_DIR ]; then
-    mkdir -p $CACHE_DIR
-  fi
+  export LD_LIBRARY_PATH="$BUILD_DIR/.apt/lib:$LD_LIBRARY_PATH"
+  export PKG_CONFIG_PATH="$BUILD_DIR/.apt/lib/pkgconfig:$PKG_CONFIG_PATH"
+  export CFLAGS="-I$BUILD_DIR/.apt/include"
+  export LDFLAGS="-L$BUILD_DIR/.apt/lib"
 
-  mv $REL_LIBHEIF_INSTALL_DIR.tar.gz $LIBHEIF_CACHE_FILE
-  FAILED_LIBHEIF=false
-else
-  # cache exists, extract it
-  echo "-----> Extracting LibHEIF $LIBHEIF_CACHE_FILE => $VENDOR_DIR"
-  mkdir -p $VENDOR_DIR
-  tar xzf $LIBHEIF_CACHE_FILE -C $VENDOR_DIR
-fi
-echo "-----> Done installing LibHEIF. All set for LibHEIF."
+  BUILD_TMP="/tmp/libheif-build"
+  rm -rf "$BUILD_TMP" "$LIBHEIF_DIR"
+  mkdir -p "$BUILD_TMP" "$LIBHEIF_DIR"
+  cd "$BUILD_TMP"
 
-if [ "$INSTALL_FAILED" = true ]; then
-  echo "-----> LibHEIF installation failed. Exiting."
-  exit 1
-fi
+  curl -LO "https://github.com/strukturag/libheif/releases/download/v$LIBHEIF_VERSION/libheif-$LIBHEIF_VERSION.tar.gz"
+  tar xzf "libheif-$LIBHEIF_VERSION.tar.gz"
+  cd "libheif-$LIBHEIF_VERSION"
+  mkdir build && cd build
 
-# install imagemagick
-if [ ! -f $IMAGE_MAGICK_CACHE_FILE ]; then
-  IMAGE_MAGICK_FILE="ImageMagick-$IMAGE_MAGICK_VERSION.tar.xz"
-  IMAGE_MAGICK_DIR="ImageMagick-$IMAGE_MAGICK_VERSION"
-  IMAGE_MAGICK_URL="https://www.imagemagick.org/download/releases/$IMAGE_MAGICK_FILE"
+  cmake -DCMAKE_INSTALL_PREFIX="$LIBHEIF_DIR" -DBUILD_SHARED_LIBS=ON -DBUILD_HEIF_EXAMPLES=OFF ..
+  make -j4
+  make install
 
-  echo "-----> Downloading ImageMagick from $IMAGE_MAGICK_URL"
-  wget $IMAGE_MAGICK_URL -P $BUILD_DIR | indent
-
-  echo "-----> Extracting ImageMagick from $BUILD_DIR/$IMAGE_MAGICK_FILE"
-  if [ ! -f $BUILD_DIR/$IMAGE_MAGICK_FILE ]; then
-    echo "Error: Unable to download ImageMagick" | indent
-    ls $BUILD_DIR | indent
-    exit 1;
-  fi
-  tar xvf $BUILD_DIR/$IMAGE_MAGICK_FILE | indent
-
-  echo "-----> Building ImageMagick"
-  cd $IMAGE_MAGICK_DIR
-  export CPPFLAGS="-I$IMAGE_MAGICK_INSTALL_DIR/include -I$LIBHEIF_INSTALL_DIR/include"
-  export CFLAGS="-I$IMAGE_MAGICK_INSTALL_DIR/include -I$LIBHEIF_INSTALL_DIR/include"
-  export LDFLAGS="-L$IMAGE_MAGICK_INSTALL_DIR/lib -L$LIBHEIF_INSTALL_DIR/lib"
-  export PKG_CONFIG_PATH="$LIBHEIF_INSTALL_DIR/lib/pkgconfig"
-
-  ./configure --prefix=$IMAGE_MAGICK_INSTALL_DIR --with-heic=yes --with-heic=yes --with-jpeg=yes --with-png=yes --with-tiff=yes --with-webp=yes
-  make && make install
-  cd ..
-  rm -rf $IMAGE_MAGICK_DIR
-
-  # cache for future deploys
-  echo "-----> Caching ImageMagick installation"
-  cd $VENDOR_DIR
-  REL_IMAGE_MAGICK_INSTALL_DIR="imagemagick"
-  tar czf $REL_IMAGE_MAGICK_INSTALL_DIR.tar.gz $REL_IMAGE_MAGICK_INSTALL_DIR
-
-  if [ ! -d $CACHE_DIR ]; then
-    mkdir -p $CACHE_DIR
-  fi
-
-  mv $REL_IMAGE_MAGICK_INSTALL_DIR.tar.gz $IMAGE_MAGICK_CACHE_FILE
-
-else
-  # cache exists, extract it
-  echo "-----> Extracting ImageMagick $IMAGE_MAGICK_CACHE_FILE => $VENDOR_DIR"
-  mkdir -p $VENDOR_DIR
-  tar xzf $IMAGE_MAGICK_CACHE_FILE -C $VENDOR_DIR
+  save_cache "$LIBHEIF_CACHE" "$LIBHEIF_DIR"
 fi
 
-echo "-----> Writing ImageMagick policy file"
-mkdir -p $IMAGE_MAGICK_INSTALL_DIR/etc/ImageMagick
-cat > $IMAGE_MAGICK_INSTALL_DIR/policy.xml <<EOF
-<policymap>
-  <policy domain="coder" rights="none" pattern="EPHEMERAL" />
-  <policy domain="coder" rights="none" pattern="HTTPS" />
-  <policy domain="coder" rights="none" pattern="MVG" />
-  <policy domain="coder" rights="none" pattern="MSL" />
-</policymap>
+#####################################
+# Build ImageMagick with libheif
+#####################################
+if ! restore_cache "$IM_CACHE" "$IM_DIR"; then
+  echo "⚙️ Building ImageMagick $IM_VERSION"
+
+  BUILD_TMP="/tmp/im-build"
+  rm -rf "$BUILD_TMP" "$IM_DIR"
+  mkdir -p "$BUILD_TMP" "$IM_DIR"
+  cd "$BUILD_TMP"
+
+  curl -LO "https://imagemagick.org/download/releases/ImageMagick-$IM_VERSION.tar.xz"
+  tar xf "ImageMagick-$IM_VERSION.tar.xz"
+  cd "ImageMagick-$IM_VERSION"
+
+  PKG_CONFIG_PATH="$LIBHEIF_DIR/lib/pkgconfig:$PKG_CONFIG_PATH" \
+  LD_LIBRARY_PATH="$LIBHEIF_DIR/lib:$LD_LIBRARY_PATH" \
+  ./configure \
+    --prefix="$IM_DIR" \
+    --with-heic \
+    --with-webp \
+    --with-jpeg \
+    --with-png \
+    --disable-static
+
+  make -j4
+  make install
+
+  mkdir -p "$IM_DIR/etc/ImageMagick-7"
+  cp -r ./config/* "$IM_DIR/etc/ImageMagick-7/"
+
+  save_cache "$IM_CACHE" "$IM_DIR"
+fi
+
+#####################################
+# Add runtime environment config via profile.d
+#####################################
+mkdir -p "$BUILD_DIR/.profile.d"
+cat > "$BUILD_DIR/.profile.d/imagemagick_env.sh" <<'EOF'
+export PATH="$HOME/.heroku/vendor/imagemagick/bin:$PATH"
+export LD_LIBRARY_PATH="$HOME/.heroku/vendor/libheif/lib:$HOME/.heroku/vendor/imagemagick/lib:$LD_LIBRARY_PATH"
 EOF
 
-echo "-----> Writing ImageMagick config file"
-cat > $IMAGE_MAGICK_INSTALL_DIR/magic.xml <<EOF
-<magicmap>
- <magic name="JPEG" offset="0" target="\377\330\377"/>
- <magic name="PNG" offset="0" target="\211PNG\r\n\032\n"/>
-</magicmap>
-EOF
+echo "✅ Installed runtime environment script for Heroku:"
+ls -l "$BUILD_DIR/.profile.d/"
+cat "$BUILD_DIR/.profile.d/imagemagick_env.sh"
 
-# update PATH and LD_LIBRARY_PATH
-echo "-----> Updating ImageMagick environment variables"
-PROFILE_PATH="$BUILD_DIR/.profile.d/imagemagick.sh"
-ACTUAL_INSTALL_PATH="$HOME/vendor/imagemagick"
-mkdir -p $(dirname $PROFILE_PATH)
-echo "export PATH=$ACTUAL_INSTALL_PATH/bin:\$PATH" >> $PROFILE_PATH
-echo "export LD_LIBRARY_PATH=$ACTUAL_INSTALL_PATH/lib:\$LD_LIBRARY_PATH:/usr/local/lib" >> $PROFILE_PATH
-echo "export MAGICK_CONFIGURE_PATH=$ACTUAL_INSTALL_PATH" >> $PROFILE_PATH
-echo "-----> Done updating environment variables. All set for ImageMagick."
+#####################################
+# Done
+#####################################
+echo "🎉 Build complete. ImageMagick + libheif ready."
+"$IM_DIR/bin/convert" -version
