@@ -31,7 +31,7 @@ restore_cache() {
   if [ -f "$cache_file" ]; then
     echo "📦 Restoring from cache: $cache_file"
     mkdir -p "$(dirname "$install_dir")"
-    tar -xzf "$cache_file" -C "$(dirname "$install_dir")"
+    tar --extract --gzip --file="$cache_file" --preserve-permissions -C "$(dirname "$install_dir")"
     return 0
   fi
   return 1
@@ -44,7 +44,7 @@ save_cache() {
   local cache_file=$1
   local install_dir=$2
   echo "💾 Saving to cache: $cache_file"
-  tar -czf "$cache_file" -C "$(dirname "$install_dir")" "$(basename "$install_dir")"
+  tar --create --gzip --file="$cache_file" --preserve-permissions -C "$(dirname "$install_dir")" "$(basename "$install_dir")"
 }
 
 #####################################
@@ -123,7 +123,18 @@ ls -l "$BUILD_DIR/.profile.d/"
 cat "$BUILD_DIR/.profile.d/imagemagick_env.sh"
 
 #####################################
-# Done
+# Done - verify binaries
 #####################################
-echo "🎉 Build complete. ImageMagick + libheif ready."
-"$IM_DIR/bin/convert" -version
+if "$IM_DIR/bin/convert" -version; then
+  echo "✅ ImageMagick is installed"
+else
+  echo "❌ Build failed: ImageMagick is broken" >&2
+  exit 1
+fi
+
+if "$LIBHEIF_DIR/bin/heif-info" --version; then
+  echo "✅ libheif is installed"
+else
+  echo "❌ libheif build failed" >&2
+  exit 1
+fi
