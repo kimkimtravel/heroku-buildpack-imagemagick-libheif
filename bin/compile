@@ -123,16 +123,17 @@ ls -l "$BUILD_DIR/.profile.d/"
 cat "$BUILD_DIR/.profile.d/imagemagick_env.sh"
 
 #####################################
-# Done - verify binaries
+# Done - verify binaries with LD_LIBRARY_PATH
 #####################################
-if "$IM_DIR/bin/convert" -version; then
+# Use LD_LIBRARY_PATH explicitly for runtime checks
+if LD_LIBRARY_PATH="$LIBHEIF_DIR/lib:$IM_DIR/lib:$LD_LIBRARY_PATH" "$IM_DIR/bin/convert" -version; then
   echo "✅ ImageMagick is installed"
 else
   echo "❌ Build failed: ImageMagick is broken" >&2
   exit 1
 fi
 
-if "$LIBHEIF_DIR/bin/heif-info" --version; then
+if LD_LIBRARY_PATH="$LIBHEIF_DIR/lib:$LD_LIBRARY_PATH" "$LIBHEIF_DIR/bin/heif-info" --version; then
   echo "✅ libheif is installed"
 else
   echo "❌ libheif build failed" >&2
