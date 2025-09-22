@@ -63,7 +63,7 @@ if ! restore_cache "$LIBHEIF_CACHE" "$LIBHEIF_DIR"; then
   mkdir -p "$BUILD_TMP" "$LIBHEIF_DIR"
   cd "$BUILD_TMP"
 
-  curl -LO "https://github.com/kimkimtravel/heroku-buildpack-imagemagick-libheif/libheif/libheif-$LIBHEIF_VERSION.tar.gz"
+  curl -LO "https://github.com/kimkimtravel/heroku-buildpack-imagemagick-libheif/raw/main/libheif/libheif-$LIBHEIF_VERSION.tar.gz"
   tar xzf "libheif-$LIBHEIF_VERSION.tar.gz"
   cd "libheif-$LIBHEIF_VERSION"
   mkdir build && cd build
