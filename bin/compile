@@ -7,7 +7,7 @@ CACHE_DIR=$2
 #####################################
 # Versions (bump these to force rebuild)
 #####################################
-LIBHEIF_VERSION="1.19.7"
+LIBHEIF_VERSION="1.20.2"
 IM_VERSION="7.1.1-46"
 
 #####################################
@@ -63,7 +63,7 @@ if ! restore_cache "$LIBHEIF_CACHE" "$LIBHEIF_DIR"; then
   mkdir -p "$BUILD_TMP" "$LIBHEIF_DIR"
   cd "$BUILD_TMP"
 
-  curl -LO "https://github.com/strukturag/libheif/releases/download/v$LIBHEIF_VERSION/libheif-$LIBHEIF_VERSION.tar.gz"
+  curl -LO "https://github.com/kimkimtravel/heroku-buildpack-imagemagick-libheif/libheif/libheif-$LIBHEIF_VERSION.tar.gz"
   tar xzf "libheif-$LIBHEIF_VERSION.tar.gz"
   cd "libheif-$LIBHEIF_VERSION"
   mkdir build && cd build

@@ -1,0 +1,1 @@
+The library `libheif` is distributed under the terms of the GNU Lesser General Public License. You can access the source here: <https://github.com/strukturag/libheif>
